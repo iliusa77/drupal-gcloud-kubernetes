@@ -1,0 +1,17 @@
+apiVersion: v1
+items:
+  - kind: PersistentVolumeClaim
+    apiVersion: v1
+    metadata:
+      name: nvbenfs
+      labels:
+        io.kompose.service: web
+      name: web
+    spec:
+      accessModes:
+        - ReadWriteMany
+      resources:
+        requests:
+          storage: 10Gi
+kind: List
+metadata: {}

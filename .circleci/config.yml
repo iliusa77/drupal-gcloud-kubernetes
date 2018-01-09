@@ -1,0 +1,143 @@
+version: 2
+jobs:
+  build:
+    working_directory: /project
+    docker:
+      - image: google/cloud-sdk
+    environment:
+      PROJECT_NAME: "project_name"
+      CLUSTER_NAME: "clusterdrupal"
+      CLOUDSDK_COMPUTE_ZONE: "us-central1-a"
+      DEBIAN_FRONTEND: noninteractive
+      SITE_NAME: "drupal"
+      DATABASE_NAME: "mariadb"
+      SITE_DOCKER_IMAGE: "gcr.io/project_name/drupal"
+      SITE_DOCKER_TAG: "latest"
+      DATABASE_DOCKER_IMAGE: "gcr.io/project_name/mariadb"
+      DATABASE_DOCKER_TAG: "latest"
+
+
+    steps:
+      - checkout
+      - setup_remote_docker
+
+      - run:
+          name: Update kubectl & prepare cluster credentials
+          command: |
+            apt-get update
+            apt-get install -y gettext-base
+            apt-get --only-upgrade install kubectl google-cloud-sdk -y
+            echo $ACCT_AUTH | base64 --decode -i > ${HOME}/account-auth.json
+            gcloud auth activate-service-account --key-file ${HOME}/account-auth.json
+            gcloud config set project $PROJECT_NAME
+            gcloud --quiet config set container/cluster $CLUSTER_NAME
+            gcloud config set compute/zone ${CLOUDSDK_COMPUTE_ZONE}
+            gcloud --quiet container clusters get-credentials $CLUSTER_NAME
+
+
+      - run:
+          name: Build Drupal Docker image
+          command: |
+            gcloud docker -- pull ${SITE_DOCKER_IMAGE}:${SITE_DOCKER_TAG}
+            docker build -t drupal .
+
+
+      - deploy:
+          name: Push Drupal Docker image & Deploy Drupal site
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              docker tag drupal "${SITE_DOCKER_IMAGE}-prod:${CIRCLE_SHA1}"
+              gcloud docker -- push "${SITE_DOCKER_IMAGE}-prod:${CIRCLE_SHA1}"
+              export SITE_DOCKER_IMAGE="${SITE_DOCKER_IMAGE}-prod"
+              export SITE_DOCKER_TAG="${CIRCLE_SHA1}"
+              export SITE_NAME="${SITE_NAME}-prod"
+              export DATABASE_NAME="${DATABASE_NAME}-prod"
+
+              # Separated Deployment Bitnami
+              envsubst < ./bitnami_kubernetes/deployments/persistentvolumeclaim.yaml | kubectl apply -f -
+              envsubst < ./bitnami_kubernetes/deployments/mariadb_deployment.yaml | kubectl apply -f -
+              envsubst < ./bitnami_kubernetes/deployments/drupal_deployment.yaml | kubectl apply -f -
+              envsubst < ./bitnami_kubernetes/services/mariadb_service.yaml | kubectl apply -f -
+              envsubst < ./bitnami_kubernetes/services/drupal_service.yaml | kubectl apply -f -
+              sleep 60   #Timeout for full preparation pods
+
+              # Common Deployment Bitnami
+              #envsubst < ./bitnami_kubernetes/kubernetes.yaml | kubectl apply -f -
+              #sleep 60   #Timeout for full preparation pods
+
+              # Launch of additional Drupal hook updates Bitnami
+              #chmod +x ./hook_updates.sh
+              #./hook_updates.sh
+
+              # Separated Deployment Docksal
+              #envsubst < ./docksal_kubernetes/deployments/nfs-pv.yaml | kubectl apply -f -
+              #envsubst < ./docksal_kubernetes/deployments/nfs-pv-claim.yaml | kubectl apply -f -
+              #envsubst < ./docksal_kubernetes/deployments/docksal_db_deployment.yaml | kubectl apply -f -
+              #envsubst < ./docksal_kubernetes/deployments/docksal_web_deployment.yaml | kubectl apply -f -
+              #envsubst < ./docksal_kubernetes/services/docksal_db_service.yaml | kubectl apply -f -
+              #envsubst < ./docksal_kubernetes/services/docksal_web_service.yaml | kubectl apply -f -
+              #sleep 60 #Timeout for full preparation pods
+              # Get pods variables
+              #export web_name=$(kubectl get pods --show-all=false -o name | grep web | cut -f2 -d '/')
+              #export cli_name=$(kubectl get pods --show-all=false -o name | grep cli | cut -f2 -d '/')
+              #export cli_ip=$(kubectl describe pod cli | grep IP | sed -E 's/IP:[[:space:]]+//')
+              #export db_ip=$(kubectl describe pod db | grep IP | sed -E 's/IP:[[:space:]]+//')
+              # Copy codebase
+              #kubectl cp ./docroot $web_name:/var/www/
+              #kubectl cp ./docroot $cli_name:/var/www/
+              #kubectl exec -ti $cli_name -- chown docker:www-data -R /var/www/docroot
+              # Set dns records of cli and db on web
+              #kubectl exec $web_name -- bash -c "echo '$cli_ip cli' >> /etc/hosts"
+              #kubectl exec $web_name -- bash -c "echo '$db_ip db' >> /etc/hosts"
+              # Install Drupal standart site
+              #kubectl exec $cli_name -- bash -c "drush -r docroot/ si standard --db-url=mysql://user:user@db/default -y"
+            fi
+
+            if [ "${CIRCLE_BRANCH}" == "stage" ]; then
+              docker tag drupal "${SITE_DOCKER_IMAGE}-stage:${CIRCLE_SHA1}"
+              gcloud docker -- push "${SITE_DOCKER_IMAGE}-stage:${CIRCLE_SHA1}"
+              export SITE_DOCKER_IMAGE="${SITE_DOCKER_IMAGE}-stage"
+              export SITE_DOCKER_TAG="${CIRCLE_SHA1}"
+              export SITE_NAME="${SITE_NAME}-stage"
+              export DATABASE_NAME="${DATABASE_NAME}-stage"
+
+              # Separated Deployment Bitnami
+              envsubst < ./bitnami_kubernetes/deployments/persistentvolumeclaim.yaml | kubectl apply -f -
+              envsubst < ./bitnami_kubernetes/deployments/mariadb_deployment.yaml | kubectl apply -f -
+              envsubst < ./bitnami_kubernetes/deployments/drupal_deployment.yaml | kubectl apply -f -
+              envsubst < ./bitnami_kubernetes/services/mariadb_service.yaml | kubectl apply -f -
+              envsubst < ./bitnami_kubernetes/services/drupal_service.yaml | kubectl apply -f -
+              sleep 60   #Timeout for full preparation pods
+
+              # Common Deployment Bitnami
+              #envsubst < ./bitnami_kubernetes/kubernetes.yaml | kubectl apply -f -
+              #sleep 60   #Timeout for full preparation pods
+
+              # Launch of additional Drupal hook updates Bitnami
+              #chmod +x ./hook_updates.sh
+              #./hook_updates.sh
+
+              # Separated Deployment Docksal
+              #envsubst < ./docksal_kubernetes/deployments/nfs-pv.yaml | kubectl apply -f -
+              #envsubst < ./docksal_kubernetes/deployments/nfs-pv-claim.yaml | kubectl apply -f -
+              #envsubst < ./docksal_kubernetes/deployments/docksal_db_deployment.yaml | kubectl apply -f -
+              #envsubst < ./docksal_kubernetes/deployments/docksal_web_deployment.yaml | kubectl apply -f -
+              #envsubst < ./docksal_kubernetes/services/docksal_db_service.yaml | kubectl apply -f -
+              #envsubst < ./docksal_kubernetes/services/docksal_web_service.yaml | kubectl apply -f -
+              #sleep 60 #Timeout for full preparation pods
+              # Get pods variables
+              #export web_name=$(kubectl get pods --show-all=false -o name | grep web | cut -f2 -d '/')
+              #export cli_name=$(kubectl get pods --show-all=false -o name | grep cli | cut -f2 -d '/')
+              #export cli_ip=$(kubectl describe pod cli | grep IP | sed -E 's/IP:[[:space:]]+//')
+              #export db_ip=$(kubectl describe pod db | grep IP | sed -E 's/IP:[[:space:]]+//')
+              # Copy codebase
+              #kubectl cp ./docroot $web_name:/var/www/
+              #kubectl cp ./docroot $cli_name:/var/www/
+              #kubectl exec -ti $cli_name -- chown docker:www-data -R /var/www/docroot
+              # Set dns records of cli and db on web
+              #kubectl exec $web_name -- bash -c "echo '$cli_ip cli' >> /etc/hosts"
+              #kubectl exec $web_name -- bash -c "echo '$db_ip db' >> /etc/hosts"
+              # Install Drupal standart site
+              #kubectl exec $cli_name -- bash -c "drush -r docroot/ si standard --db-url=mysql://user:user@db/default -y"
+            fi
+

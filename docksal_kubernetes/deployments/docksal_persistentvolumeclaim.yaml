@@ -1,0 +1,46 @@
+apiVersion: v1
+items:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      creationTimestamp: ~
+      labels:
+        io.kompose.service: $SITE_NAME-cli-data
+      name: $SITE_NAME-cli-data
+    spec:
+      accessModes:
+        - ReadWriteMany
+      resources:
+        requests:
+          storage: 100Mi
+    status: {}
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      creationTimestamp: ~
+      labels:
+        io.kompose.service: $SITE_NAME-db-data
+      name: $SITE_NAME-db-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Mi
+    status: {}
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      creationTimestamp: ~
+      labels:
+        io.kompose.service: $SITE_NAME-web-data
+      name: $SITE_NAME-web-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Mi
+    status: {}
+kind: List
+metadata: {}

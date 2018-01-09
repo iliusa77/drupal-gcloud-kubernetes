@@ -1,0 +1,60 @@
+apiVersion: v1
+items:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      creationTimestamp: ~
+      labels:
+        io.kompose.service: $SITE_NAME-drupal-data
+      name: $SITE_NAME-drupal-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Mi
+    status: {}
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      creationTimestamp: ~
+      labels:
+        io.kompose.service: $SITE_NAME-apache-data
+      name: $SITE_NAME-apache-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Mi
+    status: {}
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      creationTimestamp: ~
+      labels:
+        io.kompose.service: $SITE_NAME-php-data
+      name: $SITE_NAME-php-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Mi
+    status: {}
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      creationTimestamp: ~
+      labels:
+        io.kompose.service: $SITE_NAME-mariadb-data
+      name: $SITE_NAME-mariadb-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Mi
+    status: {}
+kind: List
+metadata: {}

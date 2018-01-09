@@ -1,0 +1,23 @@
+version: 2
+jobs:
+  build:
+    working_directory: /project
+    docker:
+      - image: docker:17.05.0-ce-git
+    steps:
+      - checkout
+      - setup_remote_docker
+
+      - run:
+          name: Build application Docker image
+          command: |
+            cd project/ && docker build -t drupal .
+
+      - deploy:
+          name: Push application Docker image
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              docker login -u ${DOCKERHUB_USER} -p ${DOCKERHUB_PASSWORD}
+              docker tag drupal "${ECR_ENDPOINT}/drupal:${CIRCLE_SHA1}"
+              docker push "${ECR_ENDPOINT}/drupal:${CIRCLE_SHA1}"
+            fi

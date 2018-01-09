@@ -1,0 +1,28 @@
+version: '2'
+
+services:
+  mariadb:
+    image: 'iliusa77/mariadb:0.1'
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    volumes:
+      - 'mariadb_data:/bitnami'
+  drupal:
+    image: 'iliusa77/drupal:0.1'
+    labels:
+      kompose.service.type: nodeport
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - 'drupal_data:/bitnami'
+    depends_on:
+      - mariadb
+   cli:
+    volumes-from:
+      - drupal
+volumes:
+  mariadb_data:
+    driver: local
+  drupal_data:
+    driver: local

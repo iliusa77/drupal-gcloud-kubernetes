@@ -1,0 +1,21 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: null
+    labels:
+      io.kompose.service: $DATABASE_NAME
+    name: $DATABASE_NAME
+  spec:
+    clusterIP: None
+    ports:
+    - name: headless
+      port: 55555
+      targetPort: 0
+    selector:
+      io.kompose.service: $DATABASE_NAME
+  status:
+    loadBalancer: {}
+kind: List
+metadata: {}
